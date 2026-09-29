@@ -32,9 +32,18 @@ app.all("/exotel/ivr", (req, res) => {
   console.log("Exotel IVR hit:", JSON.stringify(callInfo));
   console.log("Full payload:", JSON.stringify(data));
 
-  // Reply immediately so Exotel doesn't time out.
+  // Did Exotel actually send call data?
+  // CallSid is always present in a real Exotel request; fall back to "any field at all".
+  const hasData = Boolean(data.CallSid) || Object.keys(data).length > 0;
+
+  // Reply immediately so the caller isn't kept waiting.
   // Do any slow work (DB writes, other API calls) AFTER responding.
-  res.status(200).type("text/plain").send("OK");
+  if (hasData) {
+    res.status(200).type("text/plain").send("OK");      // Passthru "200" exit
+  } else {
+    console.log("No data received from Exotel");
+    res.status(302).type("text/plain").send("Found");   // Passthru "302" exit
+  }
 });
 
 app.listen(PORT, () => {
